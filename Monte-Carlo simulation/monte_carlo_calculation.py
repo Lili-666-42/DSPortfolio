@@ -21,8 +21,6 @@ mask - маска диафрагмы
 bias - отступ по y где частицы уходят из расчета
 t_step - временной шаг
 V_pot - скорость потока в капилляре
-'''
-'''
 l - ширина диафрагмы
 l2 - расстояние между осью и нижней точкой диафрагмы
 coor - координата по x левого края диафрагмы
@@ -99,7 +97,7 @@ def mesh(shape_y, shape_x, height, m):
     mask[(mask == 10) | (mask == 12)] = 35
     return mask
 
-
+#Задание параметров
 shape_x = 600
 shape_y = 240
 time = 50
@@ -120,6 +118,7 @@ t_step = 1e-7
 V_pot = 1e7
 folder = 'now'
 
+#Задание массивов координат и скоростей
 coory = np.ones((fullsize, time))
 coorx = np.ones((fullsize, time))
 coorx[:, 0] = np.random.uniform(5, thresh, fullsize)
@@ -130,11 +129,13 @@ vx_f = np.zeros(fullsize)
 velocities = []
 is_in = np.ones(fullsize)
 
+#Проход по временному циклу
 for i in range(1,time):
     print(size, ' - len,', i, ' - time')
     grd = np.zeros((shape_y, shape_x, N, 3))
     grd_ch = np.zeros((shape_y, shape_x))
 
+    #Проход по частицам
     for j in range(1, size): 
         if is_in[j]:
             vel = np.sqrt(vx[j]**2 + vy[j]**2) * 1e-8
@@ -154,7 +155,8 @@ for i in range(1,time):
                 vx[j] = V_pot
                 if (coory[j, i - 1]  > shape_y // 2 + height - 0.5): coory[j, i - 1] = shape_y // 2 + height - 0.5
                 if (coory[j ,i - 1]  < shape_y // 2 - height - 0.5): coory[j, i - 1] = shape_y // 2 - height - 0.5
-            
+                    
+            #Размножение частиц
             if size < fullsize:
                 out = vx[j] > 0 and vx_f[j] == 1
                 if out and vx_f[j] == 1:
@@ -179,7 +181,7 @@ for i in range(1,time):
                             size += 1
             
             calcDouble = vx[j] > 0 or j < ln
-            
+            #Добавление частиц в расчетную сетку для метода Монте-Карло
             if calcDouble:
                 a = grd[round(coory[j, i - 1]), round(coorx[j, i - 1])] 
                 index = int(grd_ch[round(coory[j, i - 1]), round(coorx[j, i - 1])])
@@ -188,7 +190,8 @@ for i in range(1,time):
                     a[index][1] = vx[j]
                     a[index][2] = vy[j]
                     grd_ch[round(coory[j, i - 1]), round(coorx[j, i - 1])] += 1
-    
+                    
+    #Проход по сетке для расчета скоростей частиц по методу Монте-Карло
     for cell_i in range(thresh, thresh + 250):
         for cell_j in range(bias, shape_y - bias):
             num_part = int(grd_ch[cell_j, cell_i])
@@ -214,11 +217,9 @@ for i in range(1,time):
                             vx[w] = (k[5] + k[6]) / 2 - zn * k[2] / 2 * np.cos(ang1)
                             vy[w] = (k[7] + k[8]) / 2 - zn2 * k[2] / 2 * np.sin(ang1)
             
-                            
+    #Второй проход по частицам                        
     for j in range(1, size): 
-
         if is_in[j]:
-
             a = mask[round(m * coory[j, i - 1]), round(m * coorx[j, i - 1])]
             if a == 0 or a == 2:
                 nor = np.array([-1, 0])
@@ -257,7 +258,7 @@ for i in range(1,time):
 
 coorx = coorx[:size, :] 
 coory = coory[:size, :] 
-
+#Вывод траекторий, если требуется
 if 0:
     plt.grid(which='both', color='black', linestyle='-', linewidth=0.5)
     for i in range(1, size):
